@@ -1,0 +1,7 @@
+# everything generated: extracted demo data, Xbox build, host test build
+/build/
+# local reference capture of the original demo
+*.mkv
+__pycache__/
+*.pyc
+tools/nxdk-env.local.sh

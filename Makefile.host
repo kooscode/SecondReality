@@ -1,0 +1,16 @@
+# Headless Linux build for testing: make -f Makefile.host
+BUILD ?= build/host
+CXX = g++
+CXXFLAGS = -O2 -g -std=c++23 -Wall -Wno-unused-function -Wno-unused-variable -MMD
+SRCS = $(wildcard src/core/*.cpp) $(wildcard src/parts/*.cpp) $(wildcard src/parts/*/*.cpp)
+SRCS := $(filter-out src/core/platform_xbox.cpp,$(SRCS))
+OBJS = $(patsubst %.cpp,$(BUILD)/%.o,$(SRCS))
+
+$(BUILD)/s2r_host: $(OBJS)
+	$(CXX) -o $@ $^ -lpthread
+
+$(BUILD)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+-include $(OBJS:.o=.d)

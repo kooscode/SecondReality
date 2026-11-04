@@ -1,0 +1,11 @@
+# nxdk build. Run ./build.sh rather than this directly: it mirrors the sources
+# into build/xbox and builds there.
+XBE_TITLE = Second\ Reality
+GEN_XISO = SecondReality.iso
+NXDK_SDL = y
+NXDK_CXX = y
+SRCS = $(filter-out %/platform_host.cpp,$(wildcard $(CURDIR)/src/core/*.cpp) $(wildcard $(CURDIR)/src/parts/*.cpp) $(wildcard $(CURDIR)/src/parts/*/*.cpp))
+CFLAGS += -O2
+LDFLAGS += -stack:1048576 -map:$(CURDIR)/main.map
+CXXFLAGS += -O2 -std=c++23 -DXBOX $(EXTRA)
+include $(NXDK_DIR)/Makefile
