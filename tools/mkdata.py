@@ -76,6 +76,10 @@ obj('LENS/_LENSEX2.OBK', 'LENS_EX2.BIN')
 obj('LENS/_LENSEX3.OBK', 'LENS_EX3.BIN')
 obj('LENS/_LENSEX4.OBK', 'LENS_EX4.BIN')
 obj('LENS/_LENSEXB.OBK', 'LENS_EXB.BIN')
+# --og1993: the lens face as the 1993 release shipped it, with the pentagram on its forehead
+# (third_party/FC-1993/README.md); the 2013 source has it without
+if '--og1993' in sys.argv[1:]:
+    shutil.copyfile(os.path.join(ROOT, 'third_party', 'FC-1993', 'LENS.EXB'), os.path.join(OUT, 'LENS_EXB.BIN'))
 obj('LENS/_LENSEXP.OBK', 'LENS_EXP.BIN')
 obj('LENS/_FILLER.OBK', 'LENS_FILLER.BIN')
 obj('WATER/BKG.OBJ', 'RAY_TAUSTA.BIN')

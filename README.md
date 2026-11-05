@@ -138,6 +138,28 @@ exactly like the original:
 
 Plus the hidden part, `DDSTARS`, an experiment Future Crew left out of the final show.
 
+## 🔯 Two versions: the 1993 release and the 2013 source
+
+The face under the lens in `LNS&ZOOM` is not the same in both. The demo Future Crew released
+in October 1993 has a pentagram on the face's forehead. The source Future Crew released in
+2013 has the same picture without it. Nothing else in the demo differs: every other part of
+the 1993 `SECOND.EXE` matches the 2013 source byte for byte.
+
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="docs/screenshots/lens.jpg" width="360" alt="LNS&ZOOM, 2013 source: the face without the pentagram"><br><sub>2013 source</sub></td>
+<td align="center"><img src="docs/screenshots/lens-1993.jpg" width="360" alt="LNS&ZOOM, 1993 release: the face with the pentagram"><br><sub>1993 release</sub></td>
+</tr>
+</table>
+</div>
+
+Both can be built (see [Building](#-building)), and each release has both ISOs:
+
+* `SecondReality-2013.iso`: the picture from the 2013 source.
+* `SecondReality-1993.iso`: the picture from the 1993 release, kept in
+  [`third_party/FC-1993`](third_party/FC-1993), with details of how it was extracted from the 1993 `SECOND.EXE`.
+
 ## 🎮 Controls
 
 | Button | Does |
@@ -170,9 +192,17 @@ export NXDK_DIR=/path/to/nxdk      # or put NXDK_DIR=... in tools/nxdk-env.local
 The ISO lands in `build/xbox/SecondReality.iso`. Load it in xemu or burn it, or put it on a
 real console's disk and start it with an ISO launcher.
 
-No demo data lives in this repository. `tools/mkdata.py` pulls everything (music, pictures,
-3D scenes, fonts) out of the original source tree at build time. Some of it comes straight
-from the 1993 object files, using a small OMF reader in `tools/omf.py`.
+That is the 2013 build, with the lens picture from the 2013 source. For the 1993 release's
+picture, with the pentagram, build with:
+
+```sh
+./build.sh OG1993=1
+```
+
+`tools/mkdata.py` pulls the demo data (music, pictures, 3D scenes, fonts) out of the
+original source tree at build time. Some of it comes straight from the 1993 object files,
+using a small OMF reader in `tools/omf.py`. The only demo data in this repository itself is
+the 1993 lens picture in `third_party/FC-1993`, which the source tree doesn't have.
 
 ### PC test build
 
