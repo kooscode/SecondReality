@@ -57,20 +57,16 @@ AI coding agent, in **a single afternoon**: about **four hours**, from an empty 
 full demo running on a real original Xbox. It ran on the console after about three hours.
 
 Nothing was hand-written. The starting point was the original 1993 DOS sources, which are
-mostly 386 assembly, and the goal was "port this to the OG Xbox". Along the way Claude Code:
+mostly 386 assembly, and the goal was "port this to the OG Xbox". 
 
-* wrote a register-level VGA emulator and an S3M tracker player from scratch, and ported all
+Accomplished: 
+* Register-level VGA emulator and an S3M tracker player from scratch, and ported all
   the parts from C and assembly to C++, original quirks included
-* pulled the demo's data straight out of the 1993 OMF object files
-* unpacked the PKLITE-compressed release executables in a CPU emulator and disassembled them,
-  to find where the shipped demo differs from the published source
-* compared the port frame by frame against a video of the original
-* debugged the real console over a serial cable, together with a second Claude Code session
-  working on the console's kernel: an audio-interrupt hang, a black start menu caused by
-  thread scheduling, tearing, and missed vblanks
+* Pulled the demo's data straight out of the 1993 OMF object files
+* Validated the port frame by frame against a video of the original
 
 The human's job was to point it at the problem, watch the result on a real TV next to the
-original, and say what looked or sounded wrong.
+original, and say what looked or sounded wrong and steer AI toward specific implementations.
 
 The toolchain and the platform are open source too:
 
@@ -83,8 +79,7 @@ No Microsoft XDK, no Microsoft kernel, and no Microsoft libraries were used.
 
 ## 📸 Screenshots
 
-Every picture here was captured from a **real original Xbox** (v1.4, component video)
-running this port.
+Every screenshot was captured from the demo running an **OG Xbox v1.4** via HDMI capture card.
 
 <div align="center">
 <table>
