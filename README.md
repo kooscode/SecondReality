@@ -65,7 +65,6 @@ mostly 386 assembly, and the goal was "port this to the OG Xbox". Along the way 
 * unpacked the PKLITE-compressed release executables in a CPU emulator and disassembled them,
   to find where the shipped demo differs from the published source
 * compared the port frame by frame against a video of the original
-* found out why xemu was silent (it doesn't play the AC97), and added an APU audio path
 * debugged the real console over a serial cable, together with a second Claude Code session
   working on the console's kernel: an audio-interrupt hang, a black start menu caused by
   thread scheduling, tearing, and missed vblanks
