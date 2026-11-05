@@ -44,17 +44,6 @@ const uint8_t *dacram() { return dac; }
 int curmode() { return mode_now; }
 void lock_textmodes(bool l) { textlock = l; }
 
-// test builds: a one line summary of the emulated VGA state
-void debug_state(char *buf, int n)
-{
-    unsigned tnz = 0, fsum = 0, dsum = 0, pnz = 0;
-    for (int i = 0; i < 4000; i++) tnz += textmem[i] != 0;
-    for (int i = 0; i < 4096; i++) fsum += font[i];
-    for (int i = 0; i < 768; i++) dsum += dac[i];
-    for (int i = 0; i < 65536; i++) pnz += plane[0][i] != 0;
-    snprintf(buf, n, "mode=%d lock=%d font=%d/%u text_nz=%u dac=%u p0_nz=%u ac10=%02x seq1=%02x seq4=%02x cr9=%02x misc=%02x pel=%02x",
-             mode_now, (int)textlock, (int)font_loaded, fsum, tnz, dsum, pnz, acr[0x10], seqr[1], seqr[4], crtr[9], misc, pelmask);
-}
 void set_raster_hook(RasterHook h) { rhook = h; }
 // The retrace pulse is short (1.2 ms) and set from the timer thread, so a
 // thread polling 3DA may never run while it is up (on the Xbox a higher

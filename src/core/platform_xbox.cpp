@@ -43,15 +43,8 @@ static std::atomic<unsigned> kq_head{0}, kq_tail{0};
 static std::atomic<bool> back_held{false};
 static SDL_GameController *pads[4];
 static double last_poll;
-static volatile unsigned audio_calls;
 
 double now() { return (double)(KeQueryPerformanceCounter() - t0) / tfreq; }
-
-#ifdef S2R_AUTOSTART
-static char loglines[6][96];
-static int logn;
-#endif
-static const uint8_t *dbgfont;
 
 void log(const char *fmt, ...)
 {
@@ -61,32 +54,7 @@ void log(const char *fmt, ...)
     vsnprintf(buf, sizeof buf, fmt, ap);
     va_end(ap);
     DbgPrint("[%u] %s\n", (unsigned)(now() * 1000), buf);
-#ifdef S2R_AUTOSTART
-    snprintf(loglines[logn % 6], 96, "%6u %s", (unsigned)(now() * 100), buf);
-    logn++;
-#endif
 }
-
-#ifdef S2R_AUTOSTART
-// test builds: draw the last log lines and the frame/music counters on top
-static void overlay(uint8_t *dst, int pitch)
-{
-    if (!dbgfont) dbgfont = load_file("FONT8X16.BIN", nullptr);
-    if (!dbgfont) return;
-    char lines[8][96];
-    int n = 0;
-    music::Pos p = music::pos();
-    snprintf(lines[n++], 96, "t=%u frames=%u audio=%u ord=%d row=%d plus=%d", (unsigned)(now() * 100), (unsigned)dis::longframecount, audio_calls, p.ord, p.row, p.zplus);
-    for (int i = (logn > 6 ? logn - 6 : 0); i < logn; i++) snprintf(lines[n++], 96, "%s", loglines[i % 6]);
-    for (int l = 0; l < n; l++)
-        for (int c = 0; lines[l][c] && c < 78; c++)
-            for (int y = 0; y < 16; y++) {
-                uint8_t bits = dbgfont[(uint8_t)lines[l][c] * 16 + y];
-                uint32_t *d = (uint32_t *)(dst + (l * 16 + y) * pitch) + c * 8;
-                for (int b = 0; b < 8; b++) d[b] = (bits & (0x80 >> b)) ? 0xffffff00 : 0xff000000;
-            }
-}
-#endif
 
 static void wait_until(double t)
 {
@@ -143,12 +111,6 @@ void end_frame(vga::Frame *f)
 static uint8_t *fbs[3];
 static int fbcur;
 
-// Test builds publish the framebuffers so the host can read frames out of
-// guest RAM (QMP pmemsave) instead of grabbing the emulator window.
-struct FbInfo { char magic[8]; uint32_t phys[3]; volatile uint32_t cur; uint32_t w, h, pitch; };
-extern "C" volatile FbInfo s2r_fbinfo;
-volatile FbInfo s2r_fbinfo = {{'S', '2', 'R', 'F', 'B', 'U', 'F', '!'}, {0, 0, 0}, 0, 640, 480, 640 * 4};
-
 static void convert(const vga::Frame &f, uint8_t *dst, int pitch)
 {
     int h = f.h > 0 ? f.h : 400;
@@ -168,11 +130,9 @@ static void convert(const vga::Frame &f, uint8_t *dst, int pitch)
 static bool use_vsync;                  // set in init() before the thread starts
 static const uint32_t PCRTC_INTR = 0x00600100;
 
-// returns false if no vblank was seen within 50 ms (then the timer is used)
-static unsigned vb_flips, vb_late, vb_missed;
-
 // Waits for the next vertical blank. The caller flips right after it returns,
-// still at the raised priority, and then calls vblank_done().
+// still at the raised priority, and then calls vblank_done(). Returns false
+// if no vblank was seen within 50 ms (then the timer is used).
 static bool wait_vblank(double &last, double &period)
 {
     // Time critical while waiting so that no other thread (the audio mixer
@@ -194,13 +154,6 @@ static bool wait_vblank(double &last, double &period)
         KeStallExecutionProcessor(20);
     }
     double t = now();
-    vb_flips++;
-    if (t - t0 > period * 0.5) vb_missed++;         // woke after the vblank: one frame late
-    else if (t - t0 > 0.004) vb_late++;
-    if (vb_flips % 3600 == 0) {
-        log("video: last 3600 flips: %u late wake-ups, %u missed vblanks", vb_late, vb_missed);
-        vb_late = vb_missed = 0;
-    }
     if (last > 0) {
         double d = t - last;
         int n = (int)(d / period + 0.5);            // vblanks since the last one
@@ -248,9 +201,6 @@ static DWORD WINAPI present_thread(LPVOID)
         int back = (fbcur + 1) % 3;
         convert(frames[idx], fbs[back], 640 * 4);
         showing = -1;
-#ifdef S2R_AUTOSTART
-        overlay(fbs[back], 640 * 4);
-#endif
         asm __volatile__("sfence");
         bool waited = false;
         if (vsync) {
@@ -263,21 +213,6 @@ static DWORD WINAPI present_thread(LPVOID)
         VIDEOREG(0x00600800) = (unsigned int)fbs[back] & 0x7FFFFFFF;   // PCRTC_START
         if (waited) vblank_done();
         fbcur = back;
-        s2r_fbinfo.cur = back;
-#ifdef S2R_DIAG
-        static unsigned flips;
-        if (++flips <= 3 || flips % 600 == 0) {
-            const vga::Frame &fr = frames[idx];
-            unsigned pnz = 0;
-            for (int i = 0; i < 640 * 400; i++) pnz += fr.pix[i] != 0;
-            char b[200];
-            vga::debug_state(b, sizeof b);
-            log("diag: vga %s frame_nz=%u", b, pnz);
-            log("diag: flip %u back=%d fb=%08x crtc=%08x frame %dx%d px=%08x pal0=%08x", flips, back,
-                (unsigned)fbs[back], (unsigned)VIDEOREG(0x00600800), fr.w, fr.h,
-                ((uint32_t *)fbs[back])[240 * 640 + 320], fr.pal[0]);
-        }
-#endif
     }
     return 0;
 }
@@ -313,7 +248,6 @@ static bool aci_init()
     // The kernel has already brought the codec up; a cold reset of the AC-link
     // is only done when the codec is not ready (resetting it intermittently
     // hung a real console). Only the channels nxdk itself uses are touched.
-    log("aci: status %08x control %08x", (unsigned)aci32(0x130), (unsigned)aci32(0x12C));
     static const uint32_t ctl[2] = {0x11B, 0x17B};          // PCM out, S/PDIF out
     for (uint32_t c : ctl) {
         aci[c] = 0;                                          // stop
@@ -323,7 +257,6 @@ static bool aci_init()
         aci[c] = 0;
         aci[c - 0x0B + 0x06] = 0x1C;                         // clear LVBCI/BCIS/FIFOE
     }
-    log("aci: bus masters reset");
     bool ready = (aci32(0x130) & 0x100) != 0;
     if (!ready) {
         aci32(0x12C) &= ~0x02u;                             // cold reset, like nxdk
@@ -341,7 +274,6 @@ static bool aci_init()
     memset((void *)spdif_desc, 0, 32 * sizeof(AciDesc));
     aci32(0x110) = (uint32_t)MmGetPhysicalAddress(pcm_desc);
     aci32(0x170) = (uint32_t)MmGetPhysicalAddress(spdif_desc);
-    log("aci: descriptors set");
     return ready;
 }
 
@@ -377,7 +309,6 @@ static DWORD WINAPI audio_thread(LPVOID)
         music::mix((int16_t *)abuf[i], ABUF_FRAMES);
         aci_queue(i, abuf[i], ABUF_FRAMES);
         queued++;
-        audio_calls++;
     };
     for (int i = 0; i < ABUF_AHEAD; i++) queue_one();
     aci_run();
@@ -433,7 +364,6 @@ static bool running_on_xemu()
     if (!got) { log("aci: codec busy, assuming real hardware"); return false; }
     volatile uint16_t *codec = (volatile uint16_t *)0xfec00000;
     uint16_t id = codec[0x7C / 2];
-    log("aci: codec id %04x", id);
     return id == 0x8384;
 }
 
@@ -501,7 +431,6 @@ static DWORD WINAPI apu_thread(LPVOID)
             int pos = (int)(written % RING_FRAMES);
             music::mix((int16_t *)(ring + pos * 4), RING_CHUNK);
             written += RING_CHUNK;
-            audio_calls++;
         }
         music::set_latency((int)(written - played));
         Sleep(4);
@@ -514,49 +443,10 @@ void init(int, char **)
 {
     tfreq = (double)KeQueryPerformanceFrequency();
     t0 = KeQueryPerformanceCounter();
-    log("init: start");
-#ifdef S2R_DIAG
-    {
-        // RAM after a quick reboot is not zero: check the loader zeroed .bss
-        unsigned nz = 0, fz = 0;
-        for (int i = 0; i < 4; i++) for (int j = 0; j < 65536; j++) nz += vga::plane[i][j] != 0;
-        const uint8_t *fp = (const uint8_t *)frames;
-        for (size_t i = 0; i < sizeof frames; i++) fz += fp[i] != 0;
-        log("diag: bss check: vga planes nonzero=%u frames nonzero=%u", nz, fz);
-        char b[200];
-        vga::debug_state(b, sizeof b);
-        log("diag: vga %s", b);
-    }
-#endif
     BOOL vok = XVideoSetMode(640, 480, 32, REFRESH_DEFAULT);
-    {
-        VIDEO_MODE vm = XVideoGetMode();
-        unsigned char *fb = XVideoGetFB();
-        log("init: video mode set ok=%d %dx%dx%d r%d fb=%08x phys=%08x crtc=%08x", (int)vok, vm.width, vm.height,
-            vm.bpp, vm.refresh, (unsigned)fb, fb ? (unsigned)MmGetPhysicalAddress(fb) : 0u,
-            (unsigned)VIDEOREG(0x00600800));
-        if (!vok) {
-            VIDEO_MODE m;
-            void *it = nullptr;
-            while (XVideoListModes(&m, 0, 0, &it)) log("  mode %dx%dx%d r%d", m.width, m.height, m.bpp, m.refresh);
-        }
-#ifdef S2R_DIAG
-        // two second colour bars straight into nxdk's own framebuffer
-        if (fb) {
-            for (int y = 0; y < 480; y++) {
-                uint32_t *d = (uint32_t *)(fb + y * 640 * 4);
-                for (int x = 0; x < 640; x++)
-                    d[x] = x < 213 ? 0xFFFF0000 : x < 426 ? 0xFF00FF00 : 0xFF0000FF;
-            }
-            asm __volatile__("sfence");
-            log("diag: colour bars drawn");
-            Sleep(2000);
-        }
-#endif
-    }
+    if (!vok) log("video: could not set 640x480x32");
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER);
-    log("init: SDL ok");
     window = SDL_CreateWindow("Second Reality", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_SHOWN);
     (void)window;
     fbs[0] = XVideoGetFB();
@@ -564,9 +454,7 @@ void init(int, char **)
         fbs[i] = (uint8_t *)MmAllocateContiguousMemoryEx(640 * 480 * 4, 0, 0x7FFFFFFF, 0x1000, PAGE_READWRITE | PAGE_WRITECOMBINE);
         memset(fbs[i], 0, 640 * 480 * 4);
     }
-    for (int i = 0; i < 3; i++) s2r_fbinfo.phys[i] = (uint32_t)MmGetPhysicalAddress(fbs[i]);
 
-    log("init: video ok");
     bool codec_ready = aci_init();
     use_apu = codec_ready && running_on_xemu();
     log("audio: %s%s", use_apu ? "APU voice (xemu)" : "AC97", codec_ready ? "" : " (codec not ready)");
@@ -584,9 +472,6 @@ void init(int, char **)
     }
 
     use_vsync = !use_apu;                // real hardware (see present_thread)
-#ifdef S2R_FORCE_VSYNC
-    use_vsync = true;                    // test builds: exercise the vsync path in xemu
-#endif
     HANDLE h = CreateThread(nullptr, 64 * 1024, present_thread, nullptr, 0, nullptr);
     SetThreadPriority(h, THREAD_PRIORITY_ABOVE_NORMAL);
 }
@@ -665,11 +550,6 @@ int peekkey()
 
 int getkey()
 {
-#ifdef S2R_AUTOSTART
-    // test builds: confirm the setup menu by itself
-    static bool once;
-    if (!once) { once = true; double t = now(); while (now() - t < 2.0) Sleep(10); return KEY_ENTER; }
-#endif
     for (;;) {
         int k = peekkey();
         if (k) return k;

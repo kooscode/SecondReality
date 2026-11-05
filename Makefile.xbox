@@ -6,6 +6,6 @@ NXDK_SDL = y
 NXDK_CXX = y
 SRCS = $(filter-out %/platform_host.cpp,$(wildcard $(CURDIR)/src/core/*.cpp) $(wildcard $(CURDIR)/src/parts/*.cpp) $(wildcard $(CURDIR)/src/parts/*/*.cpp))
 CFLAGS += -O2
-LDFLAGS += -stack:1048576 -map:$(CURDIR)/main.map
+LDFLAGS += -stack:1048576
 CXXFLAGS += -O2 -std=c++23 -DXBOX $(EXTRA)
 include $(NXDK_DIR)/Makefile

@@ -91,9 +91,6 @@ int main(int argc, char **argv)
     static const int partsmask[] = {0x1f, 0x1f, 0x1e, 0x1c, 0x18, 0x10, 0, 0, 0x80, 0};
     for (int i = 1; i < argc; i++)
         if (!strcmp(argv[i], "--start") && i + 1 < argc) whattorun = partsmask[atoi(argv[++i]) % 10];
-#ifdef S2R_START
-    whattorun = partsmask[S2R_START % 10];      // test builds: start from a later group
-#endif
 
     // the music is loaded from REALITY.FC: a table of offsets, then the modules
     {

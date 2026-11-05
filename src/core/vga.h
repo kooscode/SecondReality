@@ -20,7 +20,6 @@ void set_font(const uint8_t *font8x16);   // 256 glyphs x 16 rows (CP437)
 void setmode(int mode);
 void lock_textmodes(bool lock);
 int  curmode();
-void debug_state(char *buf, int n);   // test builds
 
 // Port I/O
 void    out(uint16_t port, uint8_t v);

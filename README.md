@@ -223,10 +223,6 @@ reimplement the effects. It reproduces the machine they ran on:
   **APU voice** instead, the hardware DirectSound uses.
 * **Input** goes through SDL2's game controller API.
 
-Test builds can be configured with `./build.sh EXTRA=...`:
-`-DS2R_AUTOSTART` (skips the menu, shows an on-screen timing overlay), `-DS2R_START=N` (starts
-from part group N), `-DS2R_DIAG` (start-up diagnostics on the serial port).
-
 ### Known differences from the PC original
 
 * The 320x200/320x400 VGA picture is scaled to 640x480. The demo runs at its native 70 Hz,
