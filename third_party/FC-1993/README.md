@@ -5,6 +5,15 @@ the original 1993 release shipped it: the face has a pentagram on its forehead. 
 source release (`third_party/SecondReality/LENS/LENS.EXB`) has the same picture without it.
 Nothing else in the part differs.
 
+<div align="center">
+<table>
+<tr>
+<td align="center"><img src="/docs/screenshots/lens.jpg" width="360" alt="LNS&ZOOM, 2013 source: the face without the pentagram"><br><sub>2013 source</sub></td>
+<td align="center"><img src="/docs/screenshots/lens-1993.jpg" width="360" alt="LNS&ZOOM, 1993 release: the face with the pentagram"><br><sub>1993 release</sub></td>
+</tr>
+</table>
+</div>
+
 Same format as the source file: the 16 byte `Uh1` header, a 768 byte palette and 320x200
 pixels (64784 bytes). `./build.sh OG1993=1` builds the demo with it.
 
